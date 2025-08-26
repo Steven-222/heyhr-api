@@ -151,7 +151,7 @@ export default router;
 
 // ---------------- Applications & Interviews (Recruiter) ----------------
 
-const AppStatus = z.enum(['APPLIED', 'SCREENING', 'INTERVIEW', 'OFFER', 'HIRED', 'REJECTED']);
+const AppStatus = z.enum(['APPLIED', 'PASSED', 'FAILED']);
 const InterviewStatus = z.enum(['SCHEDULED', 'COMPLETED', 'CANCELED']);
 
 // List applications for a specific job owned by the recruiter

@@ -28,6 +28,60 @@ CREATE TABLE IF NOT EXISTS `users` (
   UNIQUE KEY `uniq_users_email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- applications
+CREATE TABLE IF NOT EXISTS `applications` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `job_id` INT NOT NULL,
+  `candidate_id` INT NOT NULL,
+  `status` ENUM('APPLIED','PASSED','FAILED') NOT NULL DEFAULT 'APPLIED',
+  `source` ENUM('APPLY','ADDED','REFERRED','DISCOVERED') NULL,
+  `resume_url` VARCHAR(512) NULL,
+  `cover_letter` TEXT NULL,
+  `score` INT NULL,
+  `tags` JSON NULL,
+  `notes` TEXT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY `uniq_app_job_candidate` (`job_id`, `candidate_id`),
+  KEY `idx_app_job` (`job_id`),
+  KEY `idx_app_candidate` (`candidate_id`),
+  KEY `idx_app_status` (`status`),
+  CONSTRAINT `fk_app_job` FOREIGN KEY (`job_id`) REFERENCES `jobs` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_app_candidate` FOREIGN KEY (`candidate_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- interviews
+CREATE TABLE IF NOT EXISTS `interviews` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `application_id` INT NOT NULL,
+  `scheduled_at` DATETIME NOT NULL,
+  `duration_minutes` INT NULL,
+  `location` VARCHAR(255) NULL,
+  `meeting_url` VARCHAR(512) NULL,
+  `status` ENUM('SCHEDULED','COMPLETED','CANCELED') NOT NULL DEFAULT 'SCHEDULED',
+  `feedback` TEXT NULL,
+  `rating` INT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY `idx_int_app` (`application_id`),
+  CONSTRAINT `fk_int_application` FOREIGN KEY (`application_id`) REFERENCES `applications` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- notifications
+CREATE TABLE IF NOT EXISTS `notifications` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `user_id` INT NOT NULL,
+  `type` VARCHAR(50) NULL,
+  `title` VARCHAR(191) NOT NULL,
+  `message` TEXT NULL,
+  `data` JSON NULL,
+  `read_at` DATETIME NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY `idx_notif_user` (`user_id`),
+  KEY `idx_notif_read` (`read_at`),
+  CONSTRAINT `fk_notif_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 -- candidate_profiles
 CREATE TABLE IF NOT EXISTS `candidate_profiles` (
   `user_id` INT NOT NULL,

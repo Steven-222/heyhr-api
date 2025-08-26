@@ -158,7 +158,7 @@ router.get('/jobs/:id', async (req, res) => {
 
 // ---- Applications ----
 
-const AppStatus = z.enum(['APPLIED', 'SCREENING', 'INTERVIEW', 'OFFER', 'HIRED', 'REJECTED']);
+const AppStatus = z.enum(['APPLIED', 'PASSED', 'FAILED']);
 
 const ApplySchema = z.object({
   job_id: z.number().int().positive(),

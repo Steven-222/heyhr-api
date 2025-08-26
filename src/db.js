@@ -152,7 +152,7 @@ async function bootstrap(pool) {
       id INT PRIMARY KEY AUTO_INCREMENT,
       job_id INT NOT NULL,
       candidate_id INT NOT NULL,
-      status ENUM('APPLIED','SCREENING','INTERVIEW','OFFER','HIRED','REJECTED') NOT NULL DEFAULT 'APPLIED',
+      status ENUM('APPLIED','PASSED','FAILED') NOT NULL DEFAULT 'APPLIED',
       source ENUM('APPLY','ADDED','REFERRED','DISCOVERED') NULL,
       resume_url VARCHAR(512) NULL,
       cover_letter TEXT NULL,
@@ -244,6 +244,36 @@ async function bootstrap(pool) {
       const safe = err && (/Unknown column|Can\'t DROP/i.test(err.sqlMessage || '') || err.code === 'ER_CANT_DROP_FIELD_OR_KEY');
       if (!safe && !/Unknown table/i.test(err.sqlMessage || '')) throw err;
     }
+  }
+
+  // Migrate applications.status enum to simplified set ['APPLIED','PASSED','FAILED']
+  try {
+    const [rows] = await pool.query(`
+      SELECT COLUMN_TYPE AS coltype
+      FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'applications'
+        AND COLUMN_NAME = 'status'
+      LIMIT 1`);
+    const coltype = rows && rows[0] && rows[0].coltype;
+    const hasOldStatuses = coltype && (
+      coltype.includes("'SCREENING'") ||
+      coltype.includes("'INTERVIEW'") ||
+      coltype.includes("'OFFER'") ||
+      coltype.includes("'HIRED'") ||
+      coltype.includes("'REJECTED'")
+    );
+    if (hasOldStatuses) {
+      // Map old -> new first to satisfy enum constraint during MODIFY
+      await pool.query(`UPDATE applications SET status = 'APPLIED' WHERE status IN ('SCREENING','INTERVIEW','OFFER')`);
+      await pool.query(`UPDATE applications SET status = 'FAILED' WHERE status = 'REJECTED'`);
+      await pool.query(`UPDATE applications SET status = 'PASSED' WHERE status = 'HIRED'`);
+      // Now alter the enum definition
+      await pool.query(`ALTER TABLE applications MODIFY COLUMN status ENUM('APPLIED','PASSED','FAILED') NOT NULL DEFAULT 'APPLIED'`);
+    }
+  } catch (err) {
+    const safe = err && (/Unknown table|Unknown column/i.test(err.sqlMessage || '') || err.code === 'ER_NO_SUCH_TABLE' || err.code === 'ER_BAD_FIELD_ERROR');
+    if (!safe) throw err;
   }
 }
 
