@@ -55,8 +55,20 @@ async function start() {
       }
     }
   }
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`heyhr-api listening on http://localhost:${PORT}`);
+  });
+
+  // Graceful shutdown
+  const signals = ['SIGINT', 'SIGTERM'];
+  signals.forEach((signal) => {
+    process.on(signal, () => {
+      console.log(`\nReceived ${signal}, shutting down...`);
+      server.close(() => {
+        console.log('Server closed.');
+        process.exit(0);
+      });
+    });
   });
 }
 

@@ -2,8 +2,12 @@ import express from 'express';
 import { z } from 'zod';
 import { verifyAccessToken } from '../utils/jwt.js';
 import { createJob, getJobById, updateJob, listJobsByRecruiter, deleteJob, createNotification } from '../db.js';
+import multer from 'multer';
+import { extractJobFieldsFromPdf } from '../utils/pdf.js';
 
 const router = express.Router();
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
 function parseBearer(req) {
   const auth = req.headers['authorization'];
@@ -95,6 +99,24 @@ const JobUpdateDraftSchema = z.object({
   shortlist: z.boolean().optional(),
   auto_offer: z.boolean().optional(),
   // status is intentionally omitted here; use a publish endpoint to change it
+});
+
+// Upload a job description PDF and auto-extract suggested job fields
+router.post('/autofill', requireRecruiter, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file || !req.file.buffer) {
+      return res.status(400).json({ error: 'BadRequest', message: 'file is required' });
+    }
+    const isPdf = (req.file.mimetype && req.file.mimetype.includes('pdf')) || (req.file.originalname && /\.pdf$/i.test(req.file.originalname));
+    if (!isPdf) {
+      return res.status(400).json({ error: 'UnsupportedMediaType', message: 'Only PDF files are supported' });
+    }
+    const suggested = await extractJobFieldsFromPdf(req.file.buffer);
+    return res.json({ suggested });
+  } catch (err) {
+    console.error('autofill job from pdf error', err);
+    return res.status(500).json({ error: 'ServerError', message: 'Failed to extract job info from PDF' });
+  }
 });
 
 router.post('/', requireRecruiter, async (req, res) => {

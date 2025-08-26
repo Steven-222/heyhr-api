@@ -120,6 +120,10 @@ Profile:
 Jobs (mounted under `/recruiter/jobs`, Recruiter auth unless noted):
 - POST `/recruiter/jobs` create job (status must be `DRAFT` or `PUBLISHED` on create)
   - Response: `{ id, job, path, url }`
+- POST `/recruiter/jobs/autofill` (Recruiter auth)
+  - Autofills job creation form from a PDF file.
+  - Request: `multipart/form-data` with a `file` field containing the job description.
+  - Response: A JSON object with extracted fields, e.g., `{ title, description, requirements, ... }`.
 - GET `/recruiter/jobs?status&limit&offset` list own jobs
 - PATCH `/recruiter/jobs/:id` update draft fields (only when `status === 'DRAFT'` and owned)
 - POST `/recruiter/jobs/:id/publish` publish a draft job (transition `DRAFT` -> `PUBLISHED`)
@@ -127,16 +131,10 @@ Jobs (mounted under `/recruiter/jobs`, Recruiter auth unless noted):
 - DELETE `/recruiter/jobs/:id` delete draft (only when owned)
 - GET `/recruiter/jobs/:id` get job by id (public)
 
-Applications & Interviews (Recruiter auth required; authorization ensures job ownership):
+Applications (Recruiter auth required; authorization ensures job ownership):
 - GET `/recruiter/jobs/:id/applications?status&q&limit&offset` list applications for a job you own
 - GET `/recruiter/applications/:id` view application detail
 - PATCH `/recruiter/applications/:id` update `{ status?, score?, tags?, notes? }`
-- GET `/recruiter/applications/:id/interviews` list interviews on an application
-- POST `/recruiter/applications/:id/interviews` create interview
-  - Body: `{ scheduled_at, duration_minutes?, location?, meeting_url? }`
-  - Response: `{ id, path, url }`
-- PATCH `/recruiter/applications/:appId/interviews/:intId` update interview
-  - Body supports `{ scheduled_at?, duration_minutes?, location?, meeting_url?, status?, feedback?, rating? }`
 
 Notifications (Recruiter auth required):
 - GET `/recruiter/notifications?unread_only&limit&offset` list notifications

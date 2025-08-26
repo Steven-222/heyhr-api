@@ -9,9 +9,6 @@ import {
   listApplicationsByJob,
   getApplicationDetail,
   updateApplication,
-  listInterviewsByApplication,
-  createInterview,
-  updateInterview,
   // Notifications
   listNotificationsByUser,
   getNotificationById,
@@ -152,7 +149,6 @@ export default router;
 // ---------------- Applications & Interviews (Recruiter) ----------------
 
 const AppStatus = z.enum(['APPLIED', 'PASSED', 'FAILED']);
-const InterviewStatus = z.enum(['SCHEDULED', 'COMPLETED', 'CANCELED']);
 
 // List applications for a specific job owned by the recruiter
 router.get('/jobs/:id/applications', requireRecruiter, async (req, res) => {
@@ -228,115 +224,8 @@ router.patch('/applications/:id', requireRecruiter, async (req, res) => {
   }
 });
 
-// List interviews for an application (owned by recruiter)
-router.get('/applications/:id/interviews', requireRecruiter, async (req, res) => {
-  try {
-    const id = Number(req.params.id);
-    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'InvalidId' });
-    const detail = await getApplicationDetail(id);
-    if (!detail) return res.status(404).json({ error: 'NotFound' });
-    if (detail.job.recruiter_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
-    const interviews = await listInterviewsByApplication(id);
-    return res.json({ interviews });
-  } catch (err) {
-    console.error('recruiter list interviews error', err);
-    return res.status(500).json({ error: 'ServerError', message: 'Unexpected error' });
-  }
-});
 
-// Create interview for an application (owned by recruiter)
-router.post('/applications/:id/interviews', requireRecruiter, async (req, res) => {
-  try {
-    const id = Number(req.params.id);
-    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'InvalidId' });
-    const detail = await getApplicationDetail(id);
-    if (!detail) return res.status(404).json({ error: 'NotFound' });
-    if (detail.job.recruiter_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
 
-    const CreateSchema = z.object({
-      scheduled_at: z.string().min(1),
-      duration_minutes: z.coerce.number().int().positive().optional(),
-      location: z.string().min(1).max(255).optional(),
-      meeting_url: z.string().url().max(512).optional(),
-    });
-    const parsed = CreateSchema.safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json({ error: 'ValidationError', issues: parsed.error.flatten() });
-    }
-    const { scheduled_at, duration_minutes, location, meeting_url } = parsed.data;
-    const { id: newId } = await createInterview({
-      application_id: id,
-      scheduled_at,
-      duration_minutes,
-      location,
-      meeting_url,
-    });
-    const path = `${req.baseUrl}/applications/${id}/interviews/${newId}`;
-    const host = req.get('x-forwarded-host') ?? req.get('host');
-    const protocol = (req.get('x-forwarded-proto') ?? req.protocol) || 'http';
-    const url = host ? `${protocol}://${host}${path}` : path;
-    // Notify candidate about scheduled interview (fire-and-forget)
-    (async () => {
-      try {
-        const candidateId = detail.application.candidate_id;
-        const jobId = detail.job.id;
-        await createNotification({
-          user_id: candidateId,
-          type: 'INTERVIEW',
-          title: 'Interview scheduled',
-          message: `Your interview for ${detail.job.title} is scheduled at ${scheduled_at}.`,
-          data: { job_id: jobId, application_id: id, scheduled_at, path: `/candidate/applications/${id}` },
-        });
-      } catch (notifyErr) {
-        console.error('recruiter create interview notification error', notifyErr);
-      }
-    })();
-    return res.status(201).json({ id: newId, path, url });
-  } catch (err) {
-    console.error('recruiter create interview error', err);
-    return res.status(500).json({ error: 'ServerError', message: 'Unexpected error' });
-  }
-});
-
-// Update interview (must belong to application owned by recruiter)
-router.patch('/applications/:appId/interviews/:intId', requireRecruiter, async (req, res) => {
-  try {
-    const appId = Number(req.params.appId);
-    const intId = Number(req.params.intId);
-    if (!Number.isInteger(appId) || appId <= 0 || !Number.isInteger(intId) || intId <= 0) {
-      return res.status(400).json({ error: 'InvalidId' });
-    }
-    const detail = await getApplicationDetail(appId);
-    if (!detail) return res.status(404).json({ error: 'NotFound' });
-    if (detail.job.recruiter_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
-
-    // Confirm interview belongs to this application
-    const interviews = await listInterviewsByApplication(appId);
-    const target = interviews.find((i) => Number(i.id) === intId);
-    if (!target) return res.status(404).json({ error: 'NotFound' });
-
-    const PatchSchema = z.object({
-      scheduled_at: z.string().min(1).optional(),
-      duration_minutes: z.coerce.number().int().positive().optional(),
-      location: z.string().min(1).max(255).optional().nullable(),
-      meeting_url: z.string().url().max(512).optional().nullable(),
-      status: InterviewStatus.optional(),
-      feedback: z.string().max(20000).optional().nullable(),
-      rating: z.coerce.number().int().min(0).max(10).optional(),
-    });
-    const parsed = PatchSchema.safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json({ error: 'ValidationError', issues: parsed.error.flatten() });
-    }
-
-    await updateInterview(intId, parsed.data);
-    const updated = await listInterviewsByApplication(appId);
-    return res.json({ interviews: updated });
-  } catch (err) {
-    console.error('recruiter patch interview error', err);
-    return res.status(500).json({ error: 'ServerError', message: 'Unexpected error' });
-  }
-});
 
 // ---- Notifications (Recruiter) ----
 
