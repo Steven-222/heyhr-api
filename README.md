@@ -127,7 +127,7 @@ Jobs (mounted under `/recruiter/jobs`, Recruiter auth unless noted):
   - Request: `multipart/form-data` with a `file` field containing the job description.
   - Response: A JSON object with extracted fields, e.g., `{ title, description, requirements, ... }`.
 - GET `/recruiter/jobs?status&limit&offset` list own jobs
-- PATCH `/recruiter/jobs/:id` update draft fields (only when `status === 'DRAFT'` and owned)
+- PATCH `/recruiter/jobs/:id` update job fields (status can be updated for any job; other fields only when `status === 'DRAFT'`)
 - POST `/recruiter/jobs/:id/publish` publish a draft job (transition `DRAFT` -> `PUBLISHED`)
   - Response: `{ id, job }`
 - POST `/recruiter/jobs/:id/close` close a published job (transition `PUBLISHED` -> `CLOSED`)

@@ -210,7 +210,7 @@ router.get('/', requireRecruiter, async (req, res) => {
   }
 });
 
-// Save draft updates (partial). Only allowed when job is in DRAFT and owned by the recruiter.
+// Update job (partial). Status can be updated regardless of current status.
 router.patch('/:id', requireRecruiter, async (req, res) => {
   try {
     const id = Number(req.params.id);
@@ -219,7 +219,12 @@ router.patch('/:id', requireRecruiter, async (req, res) => {
     const current = await getJobById(id);
     if (!current) return res.status(404).json({ error: 'NotFound' });
     if (current.recruiter_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
-    if (current.status !== 'DRAFT') return res.status(409).json({ error: 'NotDraft', message: 'Only drafts can be edited' });
+    
+    // Allow status updates regardless of current status
+    // For other fields, only allow updates if job is in DRAFT status
+    if (current.status !== 'DRAFT' && Object.keys(req.body).some(key => key !== 'status')) {
+      return res.status(409).json({ error: 'NotDraft', message: 'Only status can be updated for non-draft jobs' });
+    }
 
     // Coerce numeric fields and skill weights similar to create
     const body = {
