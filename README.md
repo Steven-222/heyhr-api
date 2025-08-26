@@ -137,8 +137,23 @@ Jobs (mounted under `/recruiter/jobs`, Recruiter auth unless noted):
 
 Applications (Recruiter auth required; authorization ensures job ownership):
 - GET `/recruiter/jobs/:id/applications?status&q&limit&offset` list applications for a job you own
+- GET `/recruiter/jobs/:id/applications/count` get count of applications for a specific job you own
+  - Response: `{ count: number }`
+- GET `/recruiter/applications/count` get total count of applications across all jobs you own
+  - Response: `{ count: number }`
 - GET `/recruiter/applications/:id` view application detail
 - PATCH `/recruiter/applications/:id` update `{ status?, score?, tags?, notes? }`
+
+Example for application count endpoints:
+```bash
+# Get total applications count across all jobs
+curl -H "Authorization: Bearer <token>" \
+  "http://localhost:3000/recruiter/applications/count"
+
+# Get applications count for a specific job
+curl -H "Authorization: Bearer <token>" \
+  "http://localhost:3000/recruiter/jobs/123/applications/count"
+```
 
 Notifications (Recruiter auth required):
 - GET `/recruiter/notifications?unread_only&limit&offset` list notifications

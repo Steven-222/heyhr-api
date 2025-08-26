@@ -494,6 +494,18 @@ export async function countApplicationsByJob(job_id) {
   return Number(cnt ?? 0);
 }
 
+export async function countApplicationsByRecruiter(recruiter_id) {
+  const [rows] = await pool.query(
+    `SELECT COUNT(*) AS cnt 
+     FROM applications a
+     JOIN jobs j ON j.id = a.job_id
+     WHERE j.recruiter_id = :recruiter_id`,
+    { recruiter_id }
+  );
+  const cnt = rows && rows[0] && (rows[0].cnt ?? rows[0].COUNT ?? rows[0]['COUNT(*)']);
+  return Number(cnt ?? 0);
+}
+
 export async function listApplicationsByCandidate(candidate_id, { status, limit = 50, offset = 0 } = {}) {
   const where = ['a.candidate_id = :candidate_id'];
   const params = { candidate_id, limit: Number(limit), offset: Number(offset) };

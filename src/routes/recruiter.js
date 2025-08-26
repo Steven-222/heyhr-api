@@ -9,6 +9,8 @@ import {
   listApplicationsByJob,
   getApplicationDetail,
   updateApplication,
+  countApplicationsByJob,
+  countApplicationsByRecruiter,
   // Notifications
   listNotificationsByUser,
   getNotificationById,
@@ -238,6 +240,35 @@ router.patch('/applications/:id', requireRecruiter, async (req, res) => {
     return res.json(updated);
   } catch (err) {
     console.error('recruiter patch application error', err);
+    return res.status(500).json({ error: 'ServerError', message: 'Unexpected error' });
+  }
+});
+
+// Get application count for all jobs owned by the recruiter
+router.get('/applications/count', requireRecruiter, async (req, res) => {
+  try {
+    const count = await countApplicationsByRecruiter(req.user.id);
+    return res.json({ count });
+  } catch (err) {
+    console.error('recruiter get all applications count error', err);
+    return res.status(500).json({ error: 'ServerError', message: 'Unexpected error' });
+  }
+});
+
+// Get application count for a specific job owned by the recruiter
+router.get('/jobs/:id/applications/count', requireRecruiter, async (req, res) => {
+  try {
+    const jobId = Number(req.params.id);
+    if (!Number.isInteger(jobId) || jobId <= 0) return res.status(400).json({ error: 'InvalidId' });
+
+    const job = await getJobById(jobId);
+    if (!job) return res.status(404).json({ error: 'NotFound' });
+    if (job.recruiter_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+
+    const count = await countApplicationsByJob(jobId);
+    return res.json({ count });
+  } catch (err) {
+    console.error('recruiter get job applications count error', err);
     return res.status(500).json({ error: 'ServerError', message: 'Unexpected error' });
   }
 });
