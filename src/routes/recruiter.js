@@ -120,6 +120,17 @@ router.get('/:id/jobs', async (req, res) => {
   }
 });
 
+// Get application count for all jobs owned by the recruiter
+router.get('/applications/count', requireRecruiter, async (req, res) => {
+  try {
+    const count = await countApplicationsByRecruiter(req.user.id);
+    return res.json({ count });
+  } catch (err) {
+    console.error('recruiter get all applications count error', err);
+    return res.status(500).json({ error: 'ServerError', message: 'Unexpected error' });
+  }
+});
+
 // Public: recruiter public profile (sanitized)
 router.get('/:id', async (req, res) => {
   try {
@@ -240,17 +251,6 @@ router.patch('/applications/:id', requireRecruiter, async (req, res) => {
     return res.json(updated);
   } catch (err) {
     console.error('recruiter patch application error', err);
-    return res.status(500).json({ error: 'ServerError', message: 'Unexpected error' });
-  }
-});
-
-// Get application count for all jobs owned by the recruiter
-router.get('/applications/count', requireRecruiter, async (req, res) => {
-  try {
-    const count = await countApplicationsByRecruiter(req.user.id);
-    return res.json({ count });
-  } catch (err) {
-    console.error('recruiter get all applications count error', err);
     return res.status(500).json({ error: 'ServerError', message: 'Unexpected error' });
   }
 });
