@@ -841,6 +841,18 @@ export async function deleteJob(id) {
   return { affectedRows: res.affectedRows };
 }
 
+export async function closeJob(id) {
+  const sql = `UPDATE jobs SET status = 'CLOSED' WHERE id = :id`;
+  const [res] = await pool.query(sql, { id });
+  return res.affectedRows > 0;
+}
+
+export async function reopenJob(id) {
+  const sql = `UPDATE jobs SET status = 'PUBLISHED' WHERE id = :id`;
+  const [res] = await pool.query(sql, { id });
+  return res.affectedRows > 0;
+}
+
 export async function updateJob(id, patch) {
   // Build dynamic SET clause
   const fields = [];

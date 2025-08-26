@@ -71,7 +71,9 @@ Roles: `RECRUITER` and `CANDIDATE`. Role checks are enforced by `requireRecruite
 ## Candidate API (`src/routes/candidate.js`)
 
 Public jobs:
-- GET `/candidate/jobs?limit&offset` list published jobs
+- GET `/candidate/jobs?q&location&job_type&remote_flexible&limit&offset` list published jobs
+  - Query: `q` (string), `location` (string), `job_type` (enum), `remote_flexible` (boolean)
+  - Response: `{ jobs: [Job], total: number }`
 - GET `/candidate/jobs/:id` get a published job
 
 Profile (Candidate auth required):
@@ -128,6 +130,8 @@ Jobs (mounted under `/recruiter/jobs`, Recruiter auth unless noted):
 - PATCH `/recruiter/jobs/:id` update draft fields (only when `status === 'DRAFT'` and owned)
 - POST `/recruiter/jobs/:id/publish` publish a draft job (transition `DRAFT` -> `PUBLISHED`)
   - Response: `{ id, job }`
+- POST `/recruiter/jobs/:id/close` close a published job (transition `PUBLISHED` -> `CLOSED`)
+- POST `/recruiter/jobs/:id/reopen` re-open a closed job (transition `CLOSED` -> `PUBLISHED`)
 - DELETE `/recruiter/jobs/:id` delete draft (only when owned)
 - GET `/recruiter/jobs/:id` get job by id (public)
 
@@ -162,6 +166,8 @@ curl -X POST -H "Authorization: Bearer <token>" \
 - Candidate application submitted:
   - Candidate receives `type: "APPLICATION"` with data `{ job_id, application_id, path: "/candidate/applications/:id" }`
   - Recruiter receives `type: "APPLICATION"` with data `{ job_id, application_id, candidate_id, path: "/recruiter/applications/:id" }`
+- Recruiter updates application status:
+  - Candidate receives `type: "APPLICATION_STATUS_UPDATE"` with data `{ applicationId, jobId }`
 - Job published (either created as `PUBLISHED` or via publish endpoint):
   - Recruiter receives `type: "JOB"` with data `{ job_id, path: "/recruiter/jobs/:id" }`
 
