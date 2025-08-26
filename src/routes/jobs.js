@@ -220,37 +220,65 @@ router.patch('/:id', requireRecruiter, async (req, res) => {
     if (!current) return res.status(404).json({ error: 'NotFound' });
     if (current.recruiter_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
     
-    // Allow status updates regardless of current status
-    // For other fields, only allow updates if job is in DRAFT status
+    // Handle status updates separately since they're not in the schema
+    let statusUpdate = null;
+    if (req.body.status !== undefined) {
+      // Validate status value
+      if (!['DRAFT', 'PUBLISHED', 'CLOSED'].includes(req.body.status)) {
+        return res.status(400).json({ error: 'ValidationError', message: 'Invalid status value' });
+      }
+      statusUpdate = req.body.status;
+    }
+    
+    // For non-draft jobs, only allow status updates
     if (current.status !== 'DRAFT' && Object.keys(req.body).some(key => key !== 'status')) {
       return res.status(409).json({ error: 'NotDraft', message: 'Only status can be updated for non-draft jobs' });
     }
 
-    // Coerce numeric fields and skill weights similar to create
-    const body = {
-      ...req.body,
-      salary: req.body.salary !== undefined ? Number(req.body.salary) : undefined,
-      interview_duration: req.body.interview_duration !== undefined ? Number(req.body.interview_duration) : undefined,
-      // backward compatibility: accept old auto_close and map to auto_offer
-      auto_offer: req.body.auto_offer ?? req.body.auto_close,
-      skills_soft: Array.isArray(req.body.skills_soft)
-        ? req.body.skills_soft.map((s) => ({ ...s, weight: s?.weight !== undefined ? Number(s.weight) : s?.weight }))
-        : req.body.skills_soft,
-      skills_technical: Array.isArray(req.body.skills_technical)
-        ? req.body.skills_technical.map((s) => ({ ...s, weight: s?.weight !== undefined ? Number(s.weight) : s?.weight }))
-        : req.body.skills_technical,
-      skills_cognitive: Array.isArray(req.body.skills_cognitive)
-        ? req.body.skills_cognitive.map((s) => ({ ...s, weight: s?.weight !== undefined ? Number(s.weight) : s?.weight }))
-        : req.body.skills_cognitive,
-    };
+    // Prepare data for update
+    let updateData = {};
+    
+    // If we're only updating status
+    if (statusUpdate && Object.keys(req.body).length === 1) {
+      updateData = { status: statusUpdate };
+    } 
+    // If we're updating other fields (with or without status)
+    else {
+      // Remove status from body for schema validation
+      const { status, ...bodyWithoutStatus } = req.body;
+      
+      // Coerce numeric fields and skill weights similar to create
+      const body = {
+        ...bodyWithoutStatus,
+        salary: bodyWithoutStatus.salary !== undefined ? Number(bodyWithoutStatus.salary) : undefined,
+        interview_duration: bodyWithoutStatus.interview_duration !== undefined ? Number(bodyWithoutStatus.interview_duration) : undefined,
+        // backward compatibility: accept old auto_close and map to auto_offer
+        auto_offer: bodyWithoutStatus.auto_offer ?? bodyWithoutStatus.auto_close,
+        skills_soft: Array.isArray(bodyWithoutStatus.skills_soft)
+          ? bodyWithoutStatus.skills_soft.map((s) => ({ ...s, weight: s?.weight !== undefined ? Number(s.weight) : s?.weight }))
+          : bodyWithoutStatus.skills_soft,
+        skills_technical: Array.isArray(bodyWithoutStatus.skills_technical)
+          ? bodyWithoutStatus.skills_technical.map((s) => ({ ...s, weight: s?.weight !== undefined ? Number(s.weight) : s?.weight }))
+          : bodyWithoutStatus.skills_technical,
+        skills_cognitive: Array.isArray(bodyWithoutStatus.skills_cognitive)
+          ? bodyWithoutStatus.skills_cognitive.map((s) => ({ ...s, weight: s?.weight !== undefined ? Number(s.weight) : s?.weight }))
+          : bodyWithoutStatus.skills_cognitive,
+      };
 
-    const parsed = JobUpdateDraftSchema.safeParse(body);
-    if (!parsed.success) {
-      return res.status(400).json({ error: 'ValidationError', issues: parsed.error.flatten() });
+      const parsed = JobUpdateDraftSchema.safeParse(body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'ValidationError', issues: parsed.error.flatten() });
+      }
+
+      updateData = parsed.data;
+      
+      // Add status back if it was provided
+      if (statusUpdate) {
+        updateData.status = statusUpdate;
+      }
     }
 
-    const data = parsed.data;
-    const result = await updateJob(id, data);
+    const result = await updateJob(id, updateData);
     if (result.affectedRows === 0) return res.status(200).json({ id, job: current });
     const job = await getJobById(id);
     return res.json({ id, job });
