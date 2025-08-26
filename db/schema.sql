@@ -50,22 +50,6 @@ CREATE TABLE IF NOT EXISTS `applications` (
   CONSTRAINT `fk_app_candidate` FOREIGN KEY (`candidate_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- interviews
-CREATE TABLE IF NOT EXISTS `interviews` (
-  `id` INT NOT NULL AUTO_INCREMENT,
-  `application_id` INT NOT NULL,
-  `scheduled_at` DATETIME NOT NULL,
-  `duration_minutes` INT NULL,
-  `location` VARCHAR(255) NULL,
-  `meeting_url` VARCHAR(512) NULL,
-  `status` ENUM('SCHEDULED','COMPLETED','CANCELED') NOT NULL DEFAULT 'SCHEDULED',
-  `feedback` TEXT NULL,
-  `rating` INT NULL,
-  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  KEY `idx_int_app` (`application_id`),
-  CONSTRAINT `fk_int_application` FOREIGN KEY (`application_id`) REFERENCES `applications` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- notifications
 CREATE TABLE IF NOT EXISTS `notifications` (

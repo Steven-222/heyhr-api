@@ -146,7 +146,7 @@ router.get('/:id', async (req, res) => {
 
 export default router;
 
-// ---------------- Applications & Interviews (Recruiter) ----------------
+// ---------------- Applications (Recruiter) ----------------
 
 const AppStatus = z.enum(['APPLIED', 'PASSED', 'FAILED']);
 
@@ -223,9 +223,6 @@ router.patch('/applications/:id', requireRecruiter, async (req, res) => {
     return res.status(500).json({ error: 'ServerError', message: 'Unexpected error' });
   }
 });
-
-
-
 
 // ---- Notifications (Recruiter) ----
 
