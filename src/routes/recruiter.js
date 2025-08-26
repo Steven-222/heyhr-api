@@ -11,6 +11,7 @@ import {
   updateApplication,
   countApplicationsByJob,
   countApplicationsByRecruiter,
+  countApplicationsByRecruiterWithStatus,
   // Notifications
   listNotificationsByUser,
   getNotificationById,
@@ -123,8 +124,16 @@ router.get('/:id/jobs', async (req, res) => {
 // Get application count for all jobs owned by the recruiter
 router.get('/applications/count', requireRecruiter, async (req, res) => {
   try {
-    const count = await countApplicationsByRecruiter(req.user.id);
-    return res.json({ count });
+    // Check if detailed counts by status are requested
+    const withStatus = req.query.withStatus === 'true' || req.query.withStatus === '1';
+    
+    if (withStatus) {
+      const counts = await countApplicationsByRecruiterWithStatus(req.user.id);
+      return res.json(counts);
+    } else {
+      const count = await countApplicationsByRecruiter(req.user.id);
+      return res.json({ count });
+    }
   } catch (err) {
     console.error('recruiter get all applications count error', err);
     return res.status(500).json({ error: 'ServerError', message: 'Unexpected error' });

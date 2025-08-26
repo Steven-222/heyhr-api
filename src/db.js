@@ -506,6 +506,31 @@ export async function countApplicationsByRecruiter(recruiter_id) {
   return Number(cnt ?? 0);
 }
 
+export async function countApplicationsByRecruiterWithStatus(recruiter_id) {
+  const [rows] = await pool.query(
+    `SELECT 
+      COUNT(*) AS total,
+      SUM(CASE WHEN a.status = 'APPLIED' THEN 1 ELSE 0 END) AS applied,
+      SUM(CASE WHEN a.status = 'PASSED' THEN 1 ELSE 0 END) AS passed,
+      SUM(CASE WHEN a.status = 'FAILED' THEN 1 ELSE 0 END) AS failed
+     FROM applications a
+     JOIN jobs j ON j.id = a.job_id
+     WHERE j.recruiter_id = :recruiter_id`,
+    { recruiter_id }
+  );
+  
+  if (!rows || !rows[0]) {
+    return { total: 0, applied: 0, passed: 0, failed: 0 };
+  }
+  
+  return {
+    total: Number(rows[0].total ?? 0),
+    applied: Number(rows[0].applied ?? 0),
+    passed: Number(rows[0].passed ?? 0),
+    failed: Number(rows[0].failed ?? 0)
+  };
+}
+
 export async function listApplicationsByCandidate(candidate_id, { status, limit = 50, offset = 0 } = {}) {
   const where = ['a.candidate_id = :candidate_id'];
   const params = { candidate_id, limit: Number(limit), offset: Number(offset) };

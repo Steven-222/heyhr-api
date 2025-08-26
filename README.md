@@ -140,7 +140,8 @@ Applications (Recruiter auth required; authorization ensures job ownership):
 - GET `/recruiter/jobs/:id/applications/count` get count of applications for a specific job you own
   - Response: `{ count: number }`
 - GET `/recruiter/applications/count` get total count of applications across all jobs you own
-  - Response: `{ count: number }`
+  - Query params: `withStatus` (boolean-like: `true|false|1|0`) to get counts by status
+  - Response: `{ count: number }` or with status: `{ total: number, applied: number, passed: number, failed: number }`
 - GET `/recruiter/applications/:id` view application detail
 - PATCH `/recruiter/applications/:id` update `{ status?, score?, tags?, notes? }`
 
@@ -149,6 +150,10 @@ Example for application count endpoints:
 # Get total applications count across all jobs
 curl -H "Authorization: Bearer <token>" \
   "http://localhost:3000/recruiter/applications/count"
+
+# Get applications count by status (applied, passed, failed)
+curl -H "Authorization: Bearer <token>" \
+  "http://localhost:3000/recruiter/applications/count?withStatus=true"
 
 # Get applications count for a specific job
 curl -H "Authorization: Bearer <token>" \
