@@ -10,7 +10,6 @@ import {
   createNotification,
   closeJob,
   reopenJob,
-  publishJob
 } from '../db.js';
 import multer from 'multer';
 import { extractJobFieldsFromPdf } from '../utils/pdf.js';
