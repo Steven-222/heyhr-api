@@ -341,7 +341,7 @@ router.post('/:id/reopen', requireRecruiter, async (req, res) => {
   }
 });
 
-// Delete a job (draft only)
+// Delete a job (any status)
 router.delete('/:id', requireRecruiter, async (req, res) => {
   try {
     const id = Number(req.params.id);
@@ -350,7 +350,7 @@ router.delete('/:id', requireRecruiter, async (req, res) => {
     const current = await getJobById(id);
     if (!current) return res.status(404).json({ error: 'NotFound' });
     if (current.recruiter_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
-    if (current.status !== 'DRAFT') return res.status(409).json({ error: 'NotDraft', message: 'Only drafts can be deleted' });
+    // Removed status restriction to allow deleting jobs of any status
 
     await deleteJob(id);
     return res.status(204).end();

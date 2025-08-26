@@ -132,7 +132,7 @@ Jobs (mounted under `/recruiter/jobs`, Recruiter auth unless noted):
   - Response: `{ id, job }`
 - POST `/recruiter/jobs/:id/close` close a published job (transition `PUBLISHED` -> `CLOSED`)
 - POST `/recruiter/jobs/:id/reopen` re-open a closed job (transition `CLOSED` -> `PUBLISHED`)
-- DELETE `/recruiter/jobs/:id` delete draft (only when owned)
+- DELETE `/recruiter/jobs/:id` delete job (any status, only when owned)
 - GET `/recruiter/jobs/:id` get job by id (public)
 
 Applications (Recruiter auth required; authorization ensures job ownership):
