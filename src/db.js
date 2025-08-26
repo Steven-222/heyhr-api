@@ -380,7 +380,7 @@ export async function markNotificationRead(id) {
   return { affectedRows: res.affectedRows };
 }
 
-// -------------------- Applications & Interviews --------------------
+// -------------------- Applications --------------------
 
 export async function createApplication({ job_id, candidate_id, source, resume_url, cover_letter }) {
   const params = {
@@ -703,9 +703,50 @@ export async function listJobsByRecruiter(recruiter_id, { status, limit = 50, of
   });
 }
 
-export async function listPublishedJobs({ limit = 50, offset = 0 } = {}) {
+export async function countPublishedJobs({ q, location, job_type, remote_flexible } = {}) {
+  const where = [`status = 'PUBLISHED'`];
+  const params = {};
+  if (q) {
+    where.push(`(title LIKE :q OR description LIKE :q OR company_name LIKE :q)`);
+    params.q = `%${q}%`;
+  }
+  if (location) {
+    where.push(`location LIKE :location`);
+    params.location = `%${location}%`;
+  }
+  if (job_type) {
+    where.push(`job_type = :job_type`);
+    params.job_type = job_type;
+  }
+  if (remote_flexible) {
+    where.push(`remote_flexible = 1`);
+  }
+  const sql = `SELECT COUNT(*) AS cnt FROM jobs WHERE ${where.join(' AND ')}`;
+  const [rows] = await pool.query(sql, params);
+  const cnt = rows && rows[0] && (rows[0].cnt ?? rows[0].COUNT ?? rows[0]['COUNT(*)']);
+  return Number(cnt ?? 0);
+}
+
+export async function listPublishedJobs({ q, location, job_type, remote_flexible, limit = 50, offset = 0 } = {}) {
+  const where = [`status = 'PUBLISHED'`];
   const params = { limit: Number(limit), offset: Number(offset) };
-  const sql = `SELECT * FROM jobs WHERE status = 'PUBLISHED' ORDER BY created_at DESC LIMIT :limit OFFSET :offset`;
+  if (q) {
+    where.push(`(title LIKE :q OR description LIKE :q OR company_name LIKE :q)`);
+    params.q = `%${q}%`;
+  }
+  if (location) {
+    where.push(`location LIKE :location`);
+    params.location = `%${location}%`;
+  }
+  if (job_type) {
+    where.push(`job_type = :job_type`);
+    params.job_type = job_type;
+  }
+  if (remote_flexible) {
+    where.push(`remote_flexible = 1`);
+  }
+
+  const sql = `SELECT * FROM jobs WHERE ${where.join(' AND ')} ORDER BY created_at DESC LIMIT :limit OFFSET :offset`;
   const [rows] = await pool.query(sql, params);
   const parseJson = (v) => {
     if (v === null || v === undefined) return null;

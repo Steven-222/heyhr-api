@@ -2,6 +2,7 @@ import express from 'express';
 import { z } from 'zod';
 import {
   listPublishedJobs,
+  countPublishedJobs,
   getJobById,
   getUserById,
   getCandidateProfile,
@@ -127,14 +128,32 @@ router.patch('/me', requireCandidate, async (req, res) => {
 // List published jobs (public)
 router.get('/jobs', async (req, res) => {
   try {
-    const limit = req.query.limit !== undefined ? Number(req.query.limit) : undefined;
-    const offset = req.query.offset !== undefined ? Number(req.query.offset) : undefined;
-    if ((limit !== undefined && (!Number.isInteger(limit) || limit <= 0 || limit > 200)) ||
-        (offset !== undefined && (!Number.isInteger(offset) || offset < 0))) {
-      return res.status(400).json({ error: 'ValidationError', message: 'Invalid pagination parameters' });
+    const QuerySchema = z.object({
+      q: z.string().optional(),
+      location: z.string().optional(),
+      job_type: z.enum(['FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERNSHIP', 'TEMPORARY', 'FREELANCE']).optional(),
+      remote_flexible: z.preprocess((v) => {
+        if (v === undefined) return undefined;
+        const s = String(v).toLowerCase();
+        if (s === 'true' || s === '1') return true;
+        if (s === 'false' || s === '0') return false;
+        return v;
+      }, z.boolean().optional()),
+      limit: z.coerce.number().int().positive().max(200).optional(),
+      offset: z.coerce.number().int().min(0).optional(),
+    });
+    const parsed = QuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'ValidationError', issues: parsed.error.flatten() });
     }
-    const jobs = await listPublishedJobs({ limit, offset });
-    return res.json({ jobs });
+
+    const filters = parsed.data;
+    const [jobs, total] = await Promise.all([
+      listPublishedJobs(filters),
+      countPublishedJobs(filters),
+    ]);
+
+    return res.json({ jobs, total });
   } catch (err) {
     console.error('candidate list jobs error', err);
     return res.status(500).json({ error: 'ServerError', message: 'Unexpected error' });

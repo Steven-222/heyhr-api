@@ -215,6 +215,24 @@ router.patch('/applications/:id', requireRecruiter, async (req, res) => {
     }
 
     const result = await updateApplication(id, parsed.data);
+
+    // If status was changed, notify the candidate (fire and forget)
+    if (parsed.data.status && parsed.data.status !== detail.application.status) {
+      createNotification({
+        user_id: detail.application.candidate_id,
+        type: 'APPLICATION_STATUS_UPDATE',
+        title: `Application status updated for "${detail.job.title}"`,
+        message: `Your application for the role of "${detail.job.title}" at ${detail.job.company_name} has been updated to: ${parsed.data.status}`,
+        data: {
+          applicationId: id,
+          jobId: detail.job.id,
+        },
+      }).catch((err) => {
+        // Log error but don't block response
+        console.error('Failed to create application status notification:', err);
+      });
+    }
+
     if (result.affectedRows === 0) return res.json({ id, application: detail.application });
     const updated = await getApplicationDetail(id);
     return res.json(updated);

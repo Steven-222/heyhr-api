@@ -1,7 +1,17 @@
 import express from 'express';
 import { z } from 'zod';
 import { verifyAccessToken } from '../utils/jwt.js';
-import { createJob, getJobById, updateJob, listJobsByRecruiter, deleteJob, createNotification } from '../db.js';
+import { 
+  createJob, 
+  getJobById, 
+  updateJob, 
+  listJobsByRecruiter, 
+  deleteJob, 
+  createNotification,
+  closeJob,
+  reopenJob,
+  publishJob
+} from '../db.js';
 import multer from 'multer';
 import { extractJobFieldsFromPdf } from '../utils/pdf.js';
 
@@ -288,7 +298,51 @@ router.post('/:id/publish', requireRecruiter, async (req, res) => {
   }
 });
 
-// Delete a job. Only allowed when job is in DRAFT and owned by the recruiter.
+// Close a job
+router.post('/:id/close', requireRecruiter, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const job = await getJobById(id);
+    if (!job) {
+      return res.status(404).json({ error: 'NotFound', message: 'Job not found' });
+    }
+    if (job.recruiter_id !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'You do not own this job' });
+    }
+    if (job.status !== 'PUBLISHED') {
+      return res.status(400).json({ error: 'BadRequest', message: 'Only PUBLISHED jobs can be closed' });
+    }
+    await closeJob(id);
+    return res.status(204).send();
+  } catch (err) {
+    console.error('close job error', err);
+    return res.status(500).json({ error: 'ServerError', message: 'Unexpected error' });
+  }
+});
+
+// Re-open a job
+router.post('/:id/reopen', requireRecruiter, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const job = await getJobById(id);
+    if (!job) {
+      return res.status(404).json({ error: 'NotFound', message: 'Job not found' });
+    }
+    if (job.recruiter_id !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'You do not own this job' });
+    }
+    if (job.status !== 'CLOSED') {
+      return res.status(400).json({ error: 'BadRequest', message: 'Only CLOSED jobs can be re-opened' });
+    }
+    await reopenJob(id);
+    return res.status(204).send();
+  } catch (err) {
+    console.error('reopen job error', err);
+    return res.status(500).json({ error: 'ServerError', message: 'Unexpected error' });
+  }
+});
+
+// Delete a job (draft only)
 router.delete('/:id', requireRecruiter, async (req, res) => {
   try {
     const id = Number(req.params.id);

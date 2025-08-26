@@ -162,8 +162,6 @@ curl -X POST -H "Authorization: Bearer <token>" \
 - Candidate application submitted:
   - Candidate receives `type: "APPLICATION"` with data `{ job_id, application_id, path: "/candidate/applications/:id" }`
   - Recruiter receives `type: "APPLICATION"` with data `{ job_id, application_id, candidate_id, path: "/recruiter/applications/:id" }`
-- Interview scheduled by recruiter:
-  - Candidate receives `type: "INTERVIEW"` with data `{ job_id, application_id, scheduled_at, path: "/candidate/applications/:id" }`
 - Job published (either created as `PUBLISHED` or via publish endpoint):
   - Recruiter receives `type: "JOB"` with data `{ job_id, path: "/recruiter/jobs/:id" }`
 
@@ -224,7 +222,6 @@ Creates:
 Notifications:
 - Candidates:
   - cand1: "Application received" (Software Engineer)
-  - cand1: "Interview scheduled" (Software Engineer @ `2025-08-30 09:00:00`)
   - cand2: "Application received" (Software Engineer)
   - cand2: "Application received" (Data Analyst)
 - Recruiters:
