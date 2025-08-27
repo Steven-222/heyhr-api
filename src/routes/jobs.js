@@ -194,7 +194,7 @@ router.get('/', requireRecruiter, async (req, res) => {
       offset: req.query.offset !== undefined ? Number(req.query.offset) : undefined,
     };
     const ListQuerySchema = z.object({
-      status: z.enum(['DRAFT', 'PUBLISHED', 'CLOSED']).optional(),
+      status: z.enum(['DRAFT', 'PUBLISHED']).optional(),
       limit: z.number().int().positive().max(200).optional(),
       offset: z.number().int().min(0).optional(),
     });
@@ -224,7 +224,7 @@ router.patch('/:id', requireRecruiter, async (req, res) => {
     let statusUpdate = null;
     if (req.body.status !== undefined) {
       // Validate status value
-      if (!['DRAFT', 'PUBLISHED', 'CLOSED'].includes(req.body.status)) {
+      if (!['DRAFT', 'PUBLISHED'].includes(req.body.status)) {
         return res.status(400).json({ error: 'ValidationError', message: 'Invalid status value' });
       }
       statusUpdate = req.body.status;
@@ -363,8 +363,8 @@ router.post('/:id/reopen', requireRecruiter, async (req, res) => {
     if (job.recruiter_id !== req.user.id) {
       return res.status(403).json({ error: 'Forbidden', message: 'You do not own this job' });
     }
-    if (job.status !== 'CLOSED') {
-      return res.status(400).json({ error: 'BadRequest', message: 'Only CLOSED jobs can be re-opened' });
+    if (job.status !== 'DRAFT') {
+      return res.status(400).json({ error: 'BadRequest', message: 'Only DRAFT jobs can be re-opened' });
     }
     await reopenJob(id);
     return res.status(204).send();

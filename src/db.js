@@ -123,7 +123,7 @@ async function bootstrap(pool) {
       allow_international TINYINT(1) NOT NULL DEFAULT 0,
       shortlist TINYINT(1) NOT NULL DEFAULT 0,
       auto_close TINYINT(1) NOT NULL DEFAULT 0,
-      status ENUM('DRAFT','PUBLISHED','CLOSED') NOT NULL DEFAULT 'DRAFT',
+      status ENUM('DRAFT','PUBLISHED') NOT NULL DEFAULT 'DRAFT',
       created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       INDEX idx_jobs_recruiter_id (recruiter_id),
@@ -879,7 +879,7 @@ export async function deleteJob(id) {
 }
 
 export async function closeJob(id) {
-  const sql = `UPDATE jobs SET status = 'CLOSED' WHERE id = :id`;
+  const sql = `UPDATE jobs SET status = 'DRAFT' WHERE id = :id`;
   const [res] = await pool.query(sql, { id });
   return res.affectedRows > 0;
 }
