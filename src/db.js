@@ -627,6 +627,17 @@ export async function upsertCandidateProfile(user_id, patch) {
   return { affectedRows: res.affectedRows };
 }
 
+// Helper function to normalize string or array inputs
+function normalizeStringOrArray(input) {
+  if (!input) return null;
+  // If it's a string, convert to array with single item
+  if (typeof input === 'string') {
+    return [input];
+  }
+  // If already an array, return as is
+  return input;
+}
+
 export async function createJob(job) {
   const params = {
     recruiter_id: job.recruiter_id ?? null,
@@ -640,9 +651,9 @@ export async function createJob(job) {
     commencement_date: job.commencement_date ?? null,
     intro: job.intro ?? null,
     description: job.description ?? null,
-    responsibilities: job.responsibilities ? JSON.stringify(job.responsibilities) : null,
-    requirements: job.requirements ? JSON.stringify(job.requirements) : null,
-    qualifications: job.qualifications ? JSON.stringify(job.qualifications) : null,
+    responsibilities: job.responsibilities ? JSON.stringify(normalizeStringOrArray(job.responsibilities)) : null,
+    requirements: job.requirements ? JSON.stringify(normalizeStringOrArray(job.requirements)) : null,
+    qualifications: job.qualifications ? JSON.stringify(normalizeStringOrArray(job.qualifications)) : null,
     other_details: job.other_details ? JSON.stringify(job.other_details) : null,
     skills_soft: job.skills_soft ? JSON.stringify(job.skills_soft) : null,
     skills_technical: job.skills_technical ? JSON.stringify(job.skills_technical) : null,
@@ -914,9 +925,9 @@ export async function updateJob(id, patch) {
   if (has('commencement_date')) set('commencement_date', patch.commencement_date ?? null);
   if (has('intro')) set('intro', patch.intro ?? null);
   if (has('description')) set('description', patch.description ?? null);
-  if (has('responsibilities')) set('responsibilities', patch.responsibilities ? JSON.stringify(patch.responsibilities) : null);
-  if (has('requirements')) set('requirements', patch.requirements ? JSON.stringify(patch.requirements) : null);
-  if (has('qualifications')) set('qualifications', patch.qualifications ? JSON.stringify(patch.qualifications) : null);
+  if (has('responsibilities')) set('responsibilities', patch.responsibilities ? JSON.stringify(normalizeStringOrArray(patch.responsibilities)) : null);
+  if (has('requirements')) set('requirements', patch.requirements ? JSON.stringify(normalizeStringOrArray(patch.requirements)) : null);
+  if (has('qualifications')) set('qualifications', patch.qualifications ? JSON.stringify(normalizeStringOrArray(patch.qualifications)) : null);
   if (has('other_details')) set('other_details', patch.other_details ? JSON.stringify(patch.other_details) : null);
   if (has('skills_soft')) set('skills_soft', patch.skills_soft ? JSON.stringify(patch.skills_soft) : null);
   if (has('skills_technical')) set('skills_technical', patch.skills_technical ? JSON.stringify(patch.skills_technical) : null);

@@ -37,7 +37,7 @@ app.use((err, _req, res, _next) => {
   res.status(status).json({ error: err.name || 'ServerError', message: err.message || 'Unexpected error' });
 });
 
-const PORT = Number(process.env.PORT || 3001);
+const PORT = Number(process.env.PORT || 3000);
 
 async function start() {
   const DB_OPTIONAL = String(process.env.DB_OPTIONAL || 'false') === 'true';

@@ -20,7 +20,7 @@ npm install
 
 - Copy `.env.example` to `.env` and adjust values.
 - Key variables (see `.env.example`):
-  - PORT=3001
+  - PORT=3000
   - MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DB
   - DB_OPTIONAL=false (start server even if DB init fails)
   - SKIP_DB=false (skip DB init entirely)
@@ -105,10 +105,10 @@ Notification object:
 Example:
 ```bash
 curl -H "Authorization: Bearer <token>" \
-  "http://localhost:3001/candidate/notifications?unread_only=1&limit=20"
+  "http://localhost:3000/candidate/notifications?unread_only=1&limit=20"
 
 curl -X POST -H "Authorization: Bearer <token>" \
-  "http://localhost:3001/candidate/notifications/123/read"
+  "http://localhost:3000/candidate/notifications/123/read"
 ```
 
 ## Recruiter API (`src/routes/recruiter.js` and `src/routes/jobs.js`)
@@ -149,15 +149,15 @@ Example for application count endpoints:
 ```bash
 # Get total applications count across all jobs
 curl -H "Authorization: Bearer <token>" \
-  "http://localhost:3001/recruiter/applications/count"
+  "http://localhost:3000/recruiter/applications/count"
 
 # Get applications count by status (applied, passed, failed)
 curl -H "Authorization: Bearer <token>" \
-  "http://localhost:3001/recruiter/applications/count?withStatus=true"
+  "http://localhost:3000/recruiter/applications/count?withStatus=true"
 
 # Get applications count for a specific job
 curl -H "Authorization: Bearer <token>" \
-  "http://localhost:3001/recruiter/jobs/123/applications/count"
+  "http://localhost:3000/recruiter/jobs/123/applications/count"
 ```
 
 Notifications (Recruiter auth required):
@@ -175,10 +175,10 @@ Notification object (same as Candidate):
 Example:
 ```bash
 curl -H "Authorization: Bearer <token>" \
-  "http://localhost:3001/recruiter/notifications?unread_only=true"
+  "http://localhost:3000/recruiter/notifications?unread_only=true"
 
 curl -X POST -H "Authorization: Bearer <token>" \
-  "http://localhost:3001/recruiter/notifications/456/read"
+  "http://localhost:3000/recruiter/notifications/456/read"
 ```
 
 ## Notification Triggers
