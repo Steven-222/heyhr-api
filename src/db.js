@@ -116,6 +116,7 @@ async function bootstrap(pool) {
       commencement_date DATE NULL,
       intro TEXT NULL,
       description TEXT NULL,
+      benefits TEXT NULL,
       responsibilities JSON NULL,
       requirements JSON NULL,
       qualifications JSON NULL,
@@ -647,6 +648,26 @@ function normalizeStringOrArray(input) {
 }
 
 export async function createJob(job) {
+  // Helper function to convert string to JSON array
+  const stringToJsonArray = (value) => {
+    if (!value) return null;
+    if (typeof value === 'string') {
+      // Convert string to a single-item array
+      return JSON.stringify([value]);
+    }
+    return JSON.stringify(value);
+  };
+
+  // Helper function to convert string to JSON object
+  const stringToJsonObject = (value) => {
+    if (!value) return null;
+    if (typeof value === 'string') {
+      // Convert string to a simple object with a 'value' property
+      return JSON.stringify({ value });
+    }
+    return JSON.stringify(value);
+  };
+
   const params = {
     recruiter_id: job.recruiter_id ?? null,
     title: job.title,
@@ -660,20 +681,18 @@ export async function createJob(job) {
     intro: job.intro ?? null,
     description: job.description ?? null,
     benefits: job.benefits ?? null,
-    responsibilities: job.responsibilities ? JSON.stringify(normalizeStringOrArray(job.responsibilities)) : null,
-    requirements: job.requirements ? JSON.stringify(normalizeStringOrArray(job.requirements)) : null,
-    qualifications: job.qualifications ? JSON.stringify(normalizeStringOrArray(job.qualifications)) : null,
-    other_details: job.other_details ? JSON.stringify(job.other_details) : null,
+    responsibilities: stringToJsonArray(job.responsibilities),
+    requirements: stringToJsonArray(job.requirements),
+    qualifications: stringToJsonArray(job.qualifications),
+    other_details: stringToJsonObject(job.other_details),
     skills_soft: job.skills_soft ? JSON.stringify(job.skills_soft) : null,
     skills_technical: job.skills_technical ? JSON.stringify(job.skills_technical) : null,
     skills_cognitive: job.skills_cognitive ? JSON.stringify(job.skills_cognitive) : null,
-    hiring_start_date: job.hiring_start_date ?? null,
-    hiring_end_date: job.hiring_end_date ?? null,
     application_start_date: job.application_start_date ?? null,
     application_end_date: job.application_end_date ?? null,
     position_close_date: job.position_close_date ?? null,
     allow_international: job.allow_international ? 1 : 0,
-    shortlist: job.shortlist ? 1 : 0,
+    shortlist: job.shortlist ?? null,
     // Map API auto_offer to DB auto_close, keep backward-compat with auto_close input if provided
     auto_close: (job.auto_offer ?? job.auto_close) ? 1 : 0,
     status: job.status,
@@ -682,17 +701,17 @@ export async function createJob(job) {
     `INSERT INTO jobs (
       recruiter_id, title, company_name, location,
       remote_flexible, job_type, salary, interview_duration, commencement_date,
-      intro, description, responsibilities, requirements, qualifications, other_details,
+      intro, description, benefits, responsibilities, requirements, qualifications, other_details,
       skills_soft, skills_technical, skills_cognitive,
-      hiring_start_date, hiring_end_date, application_start_date, application_end_date,
+      application_start_date, application_end_date,
       position_close_date,
       allow_international, shortlist, auto_close, status
     ) VALUES (
       :recruiter_id, :title, :company_name, :location,
       :remote_flexible, :job_type, :salary, :interview_duration, :commencement_date,
-      :intro, :description, :responsibilities, :requirements, :qualifications, :other_details,
+      :intro, :description, :benefits, :responsibilities, :requirements, :qualifications, :other_details,
       :skills_soft, :skills_technical, :skills_cognitive,
-      :hiring_start_date, :hiring_end_date, :application_start_date, :application_end_date,
+      :application_start_date, :application_end_date,
       :position_close_date,
       :allow_international, :shortlist, :auto_close, :status
     )`,
@@ -911,51 +930,130 @@ export async function reopenJob(id) {
 }
 
 export async function updateJob(id, patch) {
-  // Build dynamic SET clause
-  const fields = [];
+  const sets = [];
   const params = { id };
 
-  const set = (col, val, transform) => {
-    const pKey = `p_${col}`;
-    params[pKey] = transform ? transform(val) : val;
-    fields.push(`${col} = :${pKey}`);
-  };
+  if (patch.title !== undefined) {
+    sets.push('title = :title');
+    params.title = patch.title;
+  }
+  if (patch.company_name !== undefined) {
+    sets.push('company_name = :company_name');
+    params.company_name = patch.company_name;
+  }
+  if (patch.location !== undefined) {
+    sets.push('location = :location');
+    params.location = patch.location;
+  }
+  if (patch.remote_flexible !== undefined) {
+    sets.push('remote_flexible = :remote_flexible');
+    params.remote_flexible = patch.remote_flexible ? 1 : 0;
+  }
+  if (patch.job_type !== undefined) {
+    sets.push('job_type = :job_type');
+    params.job_type = patch.job_type;
+  }
+  if (patch.salary !== undefined) {
+    sets.push('salary = :salary');
+    params.salary = patch.salary;
+  }
+  if (patch.interview_duration !== undefined) {
+    sets.push('interview_duration = :interview_duration');
+    params.interview_duration = patch.interview_duration;
+  }
+  if (patch.commencement_date !== undefined) {
+    sets.push('commencement_date = :commencement_date');
+    params.commencement_date = patch.commencement_date;
+  }
+  if (patch.intro !== undefined) {
+    sets.push('intro = :intro');
+    params.intro = patch.intro;
+  }
+  if (patch.description !== undefined) {
+    sets.push('description = :description');
+    params.description = patch.description;
+  }
+  if (patch.benefits !== undefined) {
+    sets.push('benefits = :benefits');
+    params.benefits = patch.benefits;
+  }
+  if (patch.responsibilities !== undefined) {
+    sets.push('responsibilities = :responsibilities');
+    if (typeof patch.responsibilities === 'string') {
+      params.responsibilities = JSON.stringify([patch.responsibilities]);
+    } else {
+      params.responsibilities = patch.responsibilities ? JSON.stringify(patch.responsibilities) : null;
+    }
+  }
+  if (patch.requirements !== undefined) {
+    sets.push('requirements = :requirements');
+    if (typeof patch.requirements === 'string') {
+      params.requirements = JSON.stringify([patch.requirements]);
+    } else {
+      params.requirements = patch.requirements ? JSON.stringify(patch.requirements) : null;
+    }
+  }
+  if (patch.qualifications !== undefined) {
+    sets.push('qualifications = :qualifications');
+    if (typeof patch.qualifications === 'string') {
+      params.qualifications = JSON.stringify([patch.qualifications]);
+    } else {
+      params.qualifications = patch.qualifications ? JSON.stringify(patch.qualifications) : null;
+    }
+  }
+  if (patch.other_details !== undefined) {
+    sets.push('other_details = :other_details');
+    if (typeof patch.other_details === 'string') {
+      params.other_details = JSON.stringify({ value: patch.other_details });
+    } else {
+      params.other_details = patch.other_details ? JSON.stringify(patch.other_details) : null;
+    }
+  }
+  if (patch.skills_soft !== undefined) {
+    sets.push('skills_soft = :skills_soft');
+    params.skills_soft = patch.skills_soft ? JSON.stringify(patch.skills_soft) : null;
+  }
+  if (patch.skills_technical !== undefined) {
+    sets.push('skills_technical = :skills_technical');
+    params.skills_technical = patch.skills_technical ? JSON.stringify(patch.skills_technical) : null;
+  }
+  if (patch.skills_cognitive !== undefined) {
+    sets.push('skills_cognitive = :skills_cognitive');
+    params.skills_cognitive = patch.skills_cognitive ? JSON.stringify(patch.skills_cognitive) : null;
+  }
+  // hiring_start_date and hiring_end_date fields removed
+  if (patch.application_start_date !== undefined) {
+    sets.push('application_start_date = :application_start_date');
+    params.application_start_date = patch.application_start_date;
+  }
+  if (patch.application_end_date !== undefined) {
+    sets.push('application_end_date = :application_end_date');
+    params.application_end_date = patch.application_end_date;
+  }
+  if (patch.position_close_date !== undefined) {
+    sets.push('position_close_date = :position_close_date');
+    params.position_close_date = patch.position_close_date;
+  }
+  if (patch.allow_international !== undefined) {
+    sets.push('allow_international = :allow_international');
+    params.allow_international = patch.allow_international ? 1 : 0;
+  }
+  if (patch.shortlist !== undefined) {
+    sets.push('shortlist = :shortlist');
+    params.shortlist = patch.shortlist;
+  }
+  if (patch.auto_offer !== undefined || patch.auto_close !== undefined) {
+    sets.push('auto_close = :auto_close');
+    params.auto_close = (patch.auto_offer ?? patch.auto_close) ? 1 : 0;
+  }
+  if (patch.status !== undefined) {
+    sets.push('status = :status');
+    params.status = patch.status;
+  }
+  
+  if (sets.length === 0) return { affectedRows: 0 };
 
-  const has = (k) => Object.prototype.hasOwnProperty.call(patch, k) && patch[k] !== undefined;
-
-  if (has('recruiter_id')) set('recruiter_id', patch.recruiter_id ?? null);
-  if (has('title')) set('title', patch.title);
-  if (has('company_name')) set('company_name', patch.company_name ?? null);
-  if (has('location')) set('location', patch.location ?? null);
-  if (has('remote_flexible')) set('remote_flexible', patch.remote_flexible ? 1 : 0);
-  if (has('job_type')) set('job_type', patch.job_type ?? null);
-  if (has('salary')) set('salary', patch.salary ?? null);
-  if (has('interview_duration')) set('interview_duration', patch.interview_duration ?? null);
-  if (has('commencement_date')) set('commencement_date', patch.commencement_date ?? null);
-  if (has('intro')) set('intro', patch.intro ?? null);
-  if (has('description')) set('description', patch.description ?? null);
-  if (has('benefits')) set('benefits', patch.benefits ?? null);
-  if (has('responsibilities')) set('responsibilities', patch.responsibilities ? JSON.stringify(normalizeStringOrArray(patch.responsibilities)) : null);
-  if (has('requirements')) set('requirements', patch.requirements ? JSON.stringify(normalizeStringOrArray(patch.requirements)) : null);
-  if (has('qualifications')) set('qualifications', patch.qualifications ? JSON.stringify(normalizeStringOrArray(patch.qualifications)) : null);
-  if (has('other_details')) set('other_details', patch.other_details ? JSON.stringify(patch.other_details) : null);
-  if (has('skills_soft')) set('skills_soft', patch.skills_soft ? JSON.stringify(patch.skills_soft) : null);
-  if (has('skills_technical')) set('skills_technical', patch.skills_technical ? JSON.stringify(patch.skills_technical) : null);
-  if (has('skills_cognitive')) set('skills_cognitive', patch.skills_cognitive ? JSON.stringify(patch.skills_cognitive) : null);
-  if (has('hiring_start_date')) set('hiring_start_date', patch.hiring_start_date ?? null);
-  if (has('hiring_end_date')) set('hiring_end_date', patch.hiring_end_date ?? null);
-  if (has('application_start_date')) set('application_start_date', patch.application_start_date ?? null);
-  if (has('application_end_date')) set('application_end_date', patch.application_end_date ?? null);
-  if (has('position_close_date')) set('position_close_date', patch.position_close_date ?? null);
-  if (has('allow_international')) set('allow_international', patch.allow_international ? 1 : 0);
-  if (has('shortlist')) set('shortlist', patch.shortlist ? 1 : 0);
-  // Map API auto_offer -> DB auto_close
-  if (has('auto_offer')) set('auto_close', patch.auto_offer ? 1 : 0);
-  if (has('status')) set('status', patch.status);
-
-  if (fields.length === 0) return { affectedRows: 0 };
-
-  const sql = `UPDATE jobs SET ${fields.join(', ')} WHERE id = :id`;
+  const sql = `UPDATE jobs SET ${sets.join(', ')} WHERE id = :id`;
   const [res] = await pool.query(sql, params);
   return { affectedRows: res.affectedRows };
 }

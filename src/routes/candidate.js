@@ -20,6 +20,9 @@ import {
   listApplicationsByJob,
 } from '../db.js';
 import { verifyAccessToken } from '../utils/jwt.js';
+import multer from 'multer';
+import fs from 'fs';
+import path from 'path';
 
 const router = express.Router();
 
@@ -122,6 +125,69 @@ router.patch('/me', requireCandidate, async (req, res) => {
   } catch (err) {
     console.error('candidate patch /me error', err);
     return res.status(500).json({ error: 'ServerError', message: 'Unexpected error' });
+  }
+});
+
+// Upload avatar image and persist avatar_url to candidate profile
+// Expects multipart/form-data with field name "avatar"
+const avatarsDir = path.join(process.cwd(), 'web', 'uploads', 'avatars');
+try { fs.mkdirSync(avatarsDir, { recursive: true }); } catch {}
+
+const avatarStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, avatarsDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname || '').toLowerCase();
+    const safeExt = ['.png', '.jpg', '.jpeg', '.webp'].includes(ext) ? ext : '';
+    const name = `${req.user?.id || 'u'}-${Date.now()}${safeExt}`;
+    cb(null, name);
+  },
+});
+
+const avatarFileFilter = (_req, file, cb) => {
+  const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+  if (!allowed.includes(file.mimetype)) {
+    return cb(Object.assign(new Error('UnsupportedMediaType'), { status: 415 }));
+  }
+  cb(null, true);
+};
+
+const uploadAvatar = multer({
+  storage: avatarStorage,
+  fileFilter: avatarFileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+});
+
+router.post('/me/avatar', requireCandidate, uploadAvatar.single('avatar'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'BadRequest', message: 'avatar file is required' });
+    }
+    const relPath = `/uploads/avatars/${req.file.filename}`;
+    const host = req.get('x-forwarded-host') ?? req.get('host');
+    const protocol = (req.get('x-forwarded-proto') ?? req.protocol) || 'http';
+    const url = host ? `${protocol}://${host}${relPath}` : relPath;
+
+    // Merge with existing profile to avoid overwriting other fields
+    const existing = await getCandidateProfile(req.user.id);
+    const merged = {
+      first_name: existing?.first_name ?? null,
+      last_name: existing?.last_name ?? null,
+      date_of_birth: existing?.date_of_birth ?? null,
+      avatar_url: url,
+      resume_url: existing?.resume_url ?? null,
+      career_objective: existing?.career_objective ?? null,
+      education: existing?.education ?? null,
+      experience: existing?.experience ?? null,
+    };
+    await upsertCandidateProfile(req.user.id, merged);
+
+    const user = await getUserById(req.user.id);
+    const profile = await getCandidateProfile(req.user.id);
+
+    return res.status(201).json({ ok: true, avatar_url: url, path: relPath, user, profile });
+  } catch (err) {
+    console.error('candidate upload avatar error', err);
+    return res.status(500).json({ error: 'ServerError', message: 'Failed to upload avatar' });
   }
 });
 

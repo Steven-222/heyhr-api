@@ -79,6 +79,20 @@ Public jobs:
 Profile (Candidate auth required):
 - GET `/candidate/me` -> `{ user, profile }`
 - PATCH `/candidate/me` update profile and optionally `name`/`phone`
+ - POST `/candidate/me/avatar` upload avatar image file (multipart/form-data)
+   - Field: `avatar` (file)
+   - Allowed types: `image/png`, `image/jpeg`, `image/jpg`, `image/webp`
+   - Max size: 5MB
+   - Response: `{ ok, avatar_url, path, user, profile }`
+   - Files are saved under `web/uploads/avatars/` and served from `/uploads/avatars/...` via `express.static('web')`.
+   - If using a CDN/external storage, first upload there and then call `PATCH /candidate/me` with `avatar_url` as a URL string.
+
+ Example:
+ ```bash
+ curl -X POST http://localhost:3000/candidate/me/avatar \
+   -H "Authorization: Bearer <token>" \
+   -F "avatar=@/full/path/to/avatar.jpg"
+ ```
 
 Applications (Candidate auth required):
 - POST `/candidate/applications`
