@@ -108,8 +108,8 @@ const JobUpdateDraftSchema = z.object({
   // status is intentionally omitted here; use a publish endpoint to change it
 });
 
-// Upload a job description PDF and auto-extract suggested job fields
-router.post('/autofill', requireRecruiter, upload.single('file'), async (req, res) => {
+// Upload a job description PDF and auto-extract suggested job fields (public)
+router.post('/autofill', upload.single('file'), async (req, res) => {
   try {
     if (!req.file || !req.file.buffer) {
       return res.status(400).json({ error: 'BadRequest', message: 'file is required' });

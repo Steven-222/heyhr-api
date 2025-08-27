@@ -136,7 +136,7 @@ Profile:
 Jobs (mounted under `/recruiter/jobs`, Recruiter auth unless noted):
 - POST `/recruiter/jobs` create job (status must be `DRAFT` or `PUBLISHED` on create)
   - Response: `{ id, job, path, url }`
-- POST `/recruiter/jobs/autofill` (Recruiter auth)
+- POST `/recruiter/jobs/autofill` (public)
   - Autofills job creation form from a PDF file.
   - Request: `multipart/form-data` with a `file` field containing the job description.
   - Response: A JSON object with extracted fields, e.g., `{ title, description, requirements, ... }`.
