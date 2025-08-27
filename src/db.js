@@ -92,6 +92,14 @@ async function bootstrap(pool) {
     const dup = err && (err.code === 'ER_DUP_FIELDNAME' || /Duplicate column name/i.test(err.sqlMessage || ''));
     if (!dup) throw err;
   }
+  
+  // Add benefits column to jobs table if it doesn't exist
+  try {
+    await pool.query(`ALTER TABLE jobs ADD COLUMN benefits TEXT NULL AFTER description;`);
+  } catch (err) {
+    const dup = err && (err.code === 'ER_DUP_FIELDNAME' || /Duplicate column name/i.test(err.sqlMessage || ''));
+    if (!dup) throw err;
+  }
 
   // Jobs table
   await pool.query(`
@@ -651,6 +659,7 @@ export async function createJob(job) {
     commencement_date: job.commencement_date ?? null,
     intro: job.intro ?? null,
     description: job.description ?? null,
+    benefits: job.benefits ?? null,
     responsibilities: job.responsibilities ? JSON.stringify(normalizeStringOrArray(job.responsibilities)) : null,
     requirements: job.requirements ? JSON.stringify(normalizeStringOrArray(job.requirements)) : null,
     qualifications: job.qualifications ? JSON.stringify(normalizeStringOrArray(job.qualifications)) : null,
@@ -925,6 +934,7 @@ export async function updateJob(id, patch) {
   if (has('commencement_date')) set('commencement_date', patch.commencement_date ?? null);
   if (has('intro')) set('intro', patch.intro ?? null);
   if (has('description')) set('description', patch.description ?? null);
+  if (has('benefits')) set('benefits', patch.benefits ?? null);
   if (has('responsibilities')) set('responsibilities', patch.responsibilities ? JSON.stringify(normalizeStringOrArray(patch.responsibilities)) : null);
   if (has('requirements')) set('requirements', patch.requirements ? JSON.stringify(normalizeStringOrArray(patch.requirements)) : null);
   if (has('qualifications')) set('qualifications', patch.qualifications ? JSON.stringify(normalizeStringOrArray(patch.qualifications)) : null);
