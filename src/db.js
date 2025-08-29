@@ -545,9 +545,11 @@ export async function listApplicationsByCandidate(candidate_id, { status, limit 
   const params = { candidate_id, limit: Number(limit), offset: Number(offset) };
   if (status) { where.push('a.status = :status'); params.status = status; }
   const sql = `
-    SELECT a.*, j.title AS job_title, j.company_name AS job_company,j.status AS job_status, j.description AS job_description, j.location AS job_location, j.salary as job_salary
+    SELECT a.*, j.title AS job_title, j.company_name AS job_company,j.status AS job_status, j.description AS job_description, j.location AS job_location, j.salary as job_salary,
+           i.status AS interview_status, i.scheduled_at
     FROM applications a
     JOIN jobs j ON j.id = a.job_id
+    LEFT JOIN interviews i ON i.application_id = a.id
     WHERE ${where.join(' AND ')}
     ORDER BY a.created_at DESC
     LIMIT :limit OFFSET :offset`;
@@ -557,6 +559,8 @@ export async function listApplicationsByCandidate(candidate_id, { status, limit 
     id: r.id,
     job_id: r.job_id,
     candidate_id: r.candidate_id,
+    interview_status: r.interview_status || null,
+    scheduled_at: r.scheduled_at,
     status: r.status,
     source: r.source,
     resume_url: r.resume_url,
