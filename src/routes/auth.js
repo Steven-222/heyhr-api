@@ -281,9 +281,13 @@ router.get('/oauth/:provider', async (req, res) => {
     const redirect_uri = String(req.query.redirect_uri || '');
     if (!redirect_uri) return res.status(400).json({ error: 'MissingRedirectURI' });
 
+    // Optional role hint from frontend; defaults to CANDIDATE. We accept only valid roles.
+    const roleHintRaw = String(req.query.role || '').toUpperCase();
+    const roleHint = RoleEnum.options.includes(roleHintRaw) ? roleHintRaw : 'CANDIDATE';
+
     const callbackUrl = `${API_BASE_URL.replace(/\/$/, '')}/auth/oauth/${provider}/callback`;
     const nonce = crypto.randomBytes(16).toString('hex');
-    const statePayload = { n: nonce, r: redirect_uri };
+    const statePayload = { n: nonce, r: redirect_uri, ro: roleHint };
     const state = Buffer.from(JSON.stringify(statePayload)).toString('base64url');
     res.cookie(`oauth_${provider}_nonce`, nonce, { httpOnly: true, sameSite: 'lax', path: `/` });
 
@@ -314,6 +318,16 @@ router.get('/oauth/:provider/callback', async (req, res) => {
     const redirect_uri = decoded.r;
     if (!redirect_uri) return res.status(400).json({ error: 'MissingRedirectURI' });
 
+    // Determine desired role for new-account creation from state (ro), defaulting to CANDIDATE.
+    const desiredRole = (() => {
+      try {
+        const r = String(decoded.ro || 'CANDIDATE').toUpperCase();
+        return RoleEnum.options.includes(r) ? r : 'CANDIDATE';
+      } catch {
+        return 'CANDIDATE';
+      }
+    })();
+
     const callbackUrl = `${API_BASE_URL.replace(/\/$/, '')}/auth/oauth/${provider}/callback`;
     const tokens = await exchangeCodeForToken(provider, String(code), callbackUrl);
     const profile = await fetchUserInfo(provider, tokens);
@@ -331,7 +345,7 @@ router.get('/oauth/:provider/callback', async (req, res) => {
       // Create user with random password; default role CANDIDATE
       const randomPass = `oauth:${provider}:${profile.provider_id}:${crypto.randomBytes(8).toString('hex')}`;
       const password_hash = await hashPassword(randomPass);
-      const { id } = await createUser({ email: profile.email, name: profile.name || null, phone: null, password_hash, role: 'CANDIDATE' });
+      const { id } = await createUser({ email: profile.email, name: profile.name || null, phone: null, password_hash, role: desiredRole });
       user = await getUserById(id);
     }
 

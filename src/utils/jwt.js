@@ -35,7 +35,10 @@ export const REFRESH_COOKIE_NAME = process.env.COOKIE_NAME || 'heyhr_refresh';
 
 export function refreshCookieOptions() {
   const secure = String(process.env.COOKIE_SECURE || 'false') === 'true';
-  const domain = process.env.COOKIE_DOMAIN || undefined;
+  const rawDomain = process.env.COOKIE_DOMAIN || '';
+  // Browsers reject cookies with domain=localhost or with a port. For local dev,
+  // we should set a host-only cookie by omitting the domain attribute.
+  const domain = rawDomain && rawDomain !== 'localhost' && !rawDomain.includes(':') ? rawDomain : undefined;
   return {
     httpOnly: true,
     path: '/',
